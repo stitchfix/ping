@@ -51,6 +51,26 @@ class ControllerTest < TestCase
     assert last_response.ok?
   end
 
+  def test_sending_new_relic_notifications_with_app_id_specified
+    ENV.delete('NEWRELIC_APP_ID')
+
+    mock.proxy(NewrelicNotification).new(api_key: "example", app_id: "234567", user: "soutaro", revision: "testtest", git_log: "Git Log Message") {|n|
+      mock(n).notify!
+    }
+
+    mock.proxy(AirbrakeNotification).new(api_key: "airbrake_api_key", rails_env: "production", scm_repository: "git@github.com:ubiregiinc/ping.git", scm_revision: "testtest", local_username: "soutaro") do |n|
+      mock(n).notify!
+    end
+
+    mock.proxy(SlackNotification).new(hook_url: "https://example.com/hook", app: "finger and register", revision_url: "https://example.com/owner/repo/commit/testtest", revision: "testtest", git_log: "Git Log Message") do |n|
+      mock(n).notify!
+    end
+
+    post '/notify', { "app" => "finger and register", "user" => "soutaro", "head_long" => "testtest", 'git_log' => "Git Log Message", 'new_relic_app_id' => '234567'}
+
+    assert last_response.ok?
+  end
+
   def test_sending_slack_notification_without_url
     ENV.delete('REVISION_URL_BASE')
 
